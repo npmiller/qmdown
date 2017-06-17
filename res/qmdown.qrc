@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>template.html</file>
+        <file>markdown.css</file>
+    </qresource>
+</RCC>
