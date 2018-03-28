@@ -2,11 +2,13 @@
 
 #include "ui_qmdown.h"
 
-#include <QFileDialog>
-#include <QUrl>
-#include <QFile>
-#include <QProcess>
 #include <QDesktopServices>
+#include <QFile>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QProcess>
+#include <QThread>
+#include <QUrl>
 #include <QWebEngineSettings>
 
 QMdown::QMdown(QString file, QWidget *parent)
@@ -48,13 +50,30 @@ void QMdown::render(const QString &file) {
 }
 
 void QMdown::fileChanged(const QString& path) {
+	// In some cases editors delete the file and recreate it so we need to
+	// wait a little
 	if (fsw->files().size() == 0) {
 		QFile f(path);
 
-		// terrible workaround for some editors that delete files to replace
-		// them with a copy when saving, this will hang the application
-		// if the file was actually deleted
-		while (!f.exists());
+		bool recreated = false;
+		for (int i = 0; i < 3; ++i) {
+			if (f.exists()) {
+				recreated = true;
+				break;
+			}
+
+			// wait for 200 ms
+			QThread::msleep(200);
+		}
+
+		if (!recreated) {
+			QString error(tr("The file %1 appears to have been "
+			                 "deleted, rendering is stopped."));
+			QMessageBox::warning(
+			    this, tr("QMdown - Error"),
+			    error.arg(path));
+			return;
+		}
 
 		// re-add the file to the watcher
 		fsw->addPath(path);
