@@ -43,6 +43,13 @@ void QMdown::render(const QString &file) {
 	pandoc.start("pandoc", args);
 	pandoc.waitForFinished();
 
+	if (QProcess::FailedToStart == pandoc.error()) {
+		QMessageBox::warning(this, tr("QMdown - Error"),
+		                     tr("Couldn't start rendering, please make "
+		                        "sure pandoc is installed correctly"));
+		return;
+	}
+
 	QString render = QString::fromUtf8(pandoc.readAllStandardOutput());
 	ui->webEngineView->page()->setHtml(templ.arg(stylesheet, render),
 	                                   QUrl("file://" + file));
@@ -112,7 +119,8 @@ bool PreviewPage::acceptNavigationRequest(
     bool /*isMainFrame*/) {
 	qDebug() << url.scheme();
 	// Only allow qrc:/index.html.
-	if (url.scheme() == QString("qrc"))
+	if (url.scheme() == QStringLiteral("qrc") ||
+	    url.scheme() == QStringLiteral("data"))
 		return true;
 	QDesktopServices::openUrl(url);
 	return false;
